@@ -1,0 +1,6 @@
+[run]
+branch = True
+source = source
+omit =
+    source/config/*
+    source/tests/*

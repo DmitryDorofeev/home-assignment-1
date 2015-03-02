@@ -1,0 +1,15 @@
+# Common
+tarantool==0.3.5
+tarantool_queue==0.1.4
+
+# Notification Pusher
+gevent==1.0.1
+requests==2.2.1
+
+# Redirect Checker
+beautifulsoup4==4.3.2
+pycurl==7.19.5
+
+# Test
+coverage==3.7.1
+mock==1.0.1
