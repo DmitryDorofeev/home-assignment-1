@@ -3,3 +3,7 @@
 .idea
 .vagrant/
 htmlcov/
+
+.idea/*
+
+*.iml
