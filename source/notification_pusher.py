@@ -190,6 +190,8 @@ def parse_cmd_args(args):
 
     :rtype: argparse.Namespace
     """
+
+    print args
     parser = argparse.ArgumentParser(
         description='Push notifications daemon.'
     )
