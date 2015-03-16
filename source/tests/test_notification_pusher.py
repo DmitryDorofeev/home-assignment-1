@@ -1,15 +1,9 @@
 import unittest
 import mock
-from notification_pusher import load_config_from_pyfile, notification_worker
+from notification_pusher import notification_worker
 
 
 class NotificationPusherTestCase(unittest.TestCase):
-
-    def test_parse_config(self):
-        cfg = load_config_from_pyfile('./source/config/checker_config.py')  # TODO: MOCK!!
-        self.assertEqual(cfg.SLEEP, 10)
-        self.assertEqual(cfg.INPUT_QUEUE_HOST, 'localhost')
-
 
     # def test_notification_worker(self):
     #     returned = 0

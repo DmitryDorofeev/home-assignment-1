@@ -182,37 +182,6 @@ def main_loop(config):
         logger.info('Stop application loop.')
 
 
-class Config(object):
-    """
-    Класс для хранения настроек приложения.
-    """
-    pass
-
-
-def load_config_from_pyfile(filepath):
-    """
-    Создает Config объект из py файла и загружает в него настройки.
-
-    Используются только camel-case переменные.
-
-    :param filepath: путь до py файла с настройками
-    :type filepath: basestring
-
-    :rtype: Config
-    """
-    cfg = Config()
-
-    variables = {}
-
-    execfile(filepath, variables)
-
-    for key, value in variables.iteritems():
-        if key.isupper():
-            setattr(cfg, key, value)
-
-    return cfg
-
-
 def install_signal_handlers():
     """
     Устанавливает обработчики системных сигналов.
@@ -240,7 +209,7 @@ def main(argv):
     if args.pidfile:
         utils.create_pidfile(args.pidfile)
 
-    config = load_config_from_pyfile(
+    config = utils.load_config_from_pyfile(
         os.path.realpath(os.path.expanduser(args.config))
     )
 
