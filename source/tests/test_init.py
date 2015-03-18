@@ -30,3 +30,13 @@ class InitTestCase(unittest.TestCase):
         curl_mock.getinfo.return_value = 'url'
         with mock.patch('lib.pycurl.Curl', mock.Mock(return_value=curl_mock)):
             self.assertEqual(lib.make_pycurl_request('url', None), ('', 'url'))
+
+    def test_get_counters(self):
+        self.assertEqual(lib.get_counters('google-analytics.com/ga.js'), ['GOOGLE_ANALYTICS'])
+        self.assertEqual(lib.get_counters('google-analytics.com/ga.js mc.yandex.ru/metrika/watch.js'), ['GOOGLE_ANALYTICS', 'YA_METRICA'])
+        self.assertEqual(lib.get_counters('lal'), [])
+
+    def test_fix_market_url(self):
+        self.assertEqual(lib.fix_market_url('market://sampleapp'), 'http://play.google.com/store/apps/sampleapp')
+        self.assertEqual(lib.fix_market_url('shop://sampleapp'), 'http://play.google.com/store/apps/shop://sampleapp')
+        self.assertEqual(lib.fix_market_url(''), 'http://play.google.com/store/apps/')
