@@ -68,9 +68,19 @@ class UtilsTestCase(unittest.TestCase):
         m_open().write.assert_called_once_with(str(pid))
 
     def test_parse_config(self):
-        cfg = utils.load_config_from_pyfile('./source/config/checker_config.py')  # TODO: MOCK!!
-        self.assertEqual(cfg.SLEEP, 10)
-        self.assertEqual(cfg.INPUT_QUEUE_HOST, 'localhost')
+        cfg = utils.Config()
+        with mock.patch('__builtin__.execfile', mock.Mock(side_effect=self.execfile_patch)):
+            self.assertEqual(type(utils.load_config_from_pyfile('filepath')), type(cfg))
+
+    def test_parse_config(self):
+        def file_mock(filepath, varaibles):
+            varaibles.update({
+                'lower': None,
+                'UPPER': None
+            })
+        cfg = utils.Config()
+        with mock.patch('__builtin__.execfile', mock.Mock(side_effect=file_mock)):
+            self.assertEqual(type(utils.load_config_from_pyfile('filepath')), type(cfg))
 
     def test_get_tube(self):
         name_str = 'name'

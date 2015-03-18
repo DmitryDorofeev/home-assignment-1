@@ -25,6 +25,15 @@ class InitTestCase(unittest.TestCase):
                     with mock.patch("lib.urlunparse", mock.Mock(return_value='somevalue')):
                         self.assertEqual(lib.prepare_url('url'), 'somevalue')
 
+    def prepare_url_exception(self):
+        netloc = mock.Mock()
+        netloc.encode.side_effect = UnicodeError
+        with mock.patch("lib.urlparse", mock.Mock(return_value=(None, netloc, None, None, None, None))):
+            with mock.patch("lib.quote", mock.Mock()):
+                with mock.patch("lib.quote_plus", mock.Mock()):
+                    with mock.patch("lib.urlunparse", mock.Mock(return_value='somevalue')):
+                        self.assertEqual(lib.prepare_url('url'), 'somevalue')
+
     def test_make_pycurl_req(self):
         curl_mock = mock.Mock()
         curl_mock.getinfo.return_value = 'url'
@@ -64,15 +73,40 @@ class InitTestCase(unittest.TestCase):
         with mock.patch('lib.make_pycurl_request',
                         mock.Mock(return_value=(None, 'url'))):
             with mock.patch('lib.logger', mock.Mock()):
-                self.assertEqual(lib.get_url(None, None, None), ('url', 'http_status', None))
+                self.assertEqual(lib.get_url(None, None, None), ('url', lib.REDIRECT_HTTP, None))
+
+    def test_get_url_new_url_meta(self):
+        with mock.patch('lib.make_pycurl_request',
+                        mock.Mock(return_value=(None, None))):
+            with mock.patch('lib.logger', mock.Mock()):
+                with mock.patch('lib.check_for_meta', mock.Mock(return_value='url')):
+                    self.assertEqual(lib.get_url(None, None, None), ('url', lib.REDIRECT_META, None))
+
+    def test_get_url_meta_false(self):
+        with mock.patch('lib.make_pycurl_request',
+                        mock.Mock(return_value=(None, None))):
+            with mock.patch('lib.logger', mock.Mock()):
+                with mock.patch('lib.check_for_meta', mock.Mock(return_value=None)):
+                    self.assertEqual(lib.get_url(None, None, None), (None, None, None))
+
+    def test_get_url_market(self):
+        def check(content, url):
+            return url
+
+        with mock.patch('lib.make_pycurl_request',
+                        mock.Mock(return_value=(None, None))):
+            with mock.patch('lib.logger', mock.Mock()):
+                with mock.patch('lib.check_for_meta', mock.Mock(side_effect=check)):
+                    self.assertEqual(lib.get_url('market://someurl.com/', None, None),
+                                     ('http://play.google.com/store/apps/someurl.com/', lib.REDIRECT_META, None))
 
     def test_check_for_meta_len(self):
         html = '<meta content="" http-equiv="refresh">'
         self.assertEqual(lib.check_for_meta(html, 'http://localhost'), None)
 
     def test_check_for_meta_all(self):
-        html = '<meta content=";url=index.html" http-equiv="refresh">'
-        self.assertEqual(lib.check_for_meta(html, 'http://localhost/'), 'http://localhost/index.html')
+        html = '<meta content=";url=test.php" http-equiv="refresh">'
+        self.assertEqual(lib.check_for_meta(html, 'http://localhost/'), 'http://localhost/test.php')
 
     def test_check_for_meta_not_m(self):
         html = '<meta content=";" http-equiv="refresh">'
@@ -81,3 +115,22 @@ class InitTestCase(unittest.TestCase):
     def test_check_for_meta_none(self):
         html = '<>'
         self.assertEqual(lib.check_for_meta(html, 'http://localhost/'), None)
+
+    def test_get_redirect_history_match_true(self):
+        with mock.patch('lib.re.match', mock.Mock(return_value=True)):
+            self.assertEqual(lib.get_redirect_history('url', None), ([], ['url'], []))
+
+    def test_get_redirect_history_not_redirect_url(self):
+        with mock.patch('lib.re.match', mock.Mock(return_value=False)):
+            with mock.patch('lib.get_url', mock.Mock(return_value=(None, None, None))):
+                self.assertEqual(lib.get_redirect_history('url', None), ([], ['url'], []))
+
+    def test_get_redirect_history_redirect_type_error(self):
+        with mock.patch('lib.re.match', mock.Mock(return_value=False)):
+            with mock.patch('lib.get_url', mock.Mock(return_value=('url', 'ERROR', True))):
+                self.assertEqual(lib.get_redirect_history('url', None), (['ERROR'], ['url', 'url'], []))
+
+    def test_get_redirect_history(self):
+        with mock.patch('lib.re.match', mock.Mock(return_value=False)):
+            with mock.patch('lib.get_url', mock.Mock(return_value=('url', None, None))):
+                self.assertEqual(lib.get_redirect_history('url', None), ([None], ['url', 'url'], []))
