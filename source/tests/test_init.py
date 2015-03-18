@@ -31,12 +31,53 @@ class InitTestCase(unittest.TestCase):
         with mock.patch('lib.pycurl.Curl', mock.Mock(return_value=curl_mock)):
             self.assertEqual(lib.make_pycurl_request('url', None), ('', 'url'))
 
+    def test_make_pycurl_req_uaer_agent(self):
+        curl_mock = mock.Mock()
+        curl_mock.getinfo.return_value = 'url'
+        with mock.patch('lib.pycurl.Curl', mock.Mock(return_value=curl_mock)):
+            self.assertEqual(lib.make_pycurl_request('url', None, 'user_agent'), ('', 'url'))
+
     def test_get_counters(self):
         self.assertEqual(lib.get_counters('google-analytics.com/ga.js'), ['GOOGLE_ANALYTICS'])
-        self.assertEqual(lib.get_counters('google-analytics.com/ga.js mc.yandex.ru/metrika/watch.js'), ['GOOGLE_ANALYTICS', 'YA_METRICA'])
+        self.assertEqual(lib.get_counters('google-analytics.com/ga.js mc.yandex.ru/metrika/watch.js'),
+                         ['GOOGLE_ANALYTICS', 'YA_METRICA'])
         self.assertEqual(lib.get_counters('lal'), [])
 
     def test_fix_market_url(self):
         self.assertEqual(lib.fix_market_url('market://sampleapp'), 'http://play.google.com/store/apps/sampleapp')
-        self.assertEqual(lib.fix_market_url('shop://sampleapp'), 'http://play.google.com/store/apps/shop://sampleapp')
+        self.assertEqual(lib.fix_market_url('sampleapp'), 'http://play.google.com/store/apps/sampleapp')
         self.assertEqual(lib.fix_market_url(''), 'http://play.google.com/store/apps/')
+
+    def test_get_url_err(self):
+        with mock.patch('lib.make_pycurl_request', mock.Mock(side_effect=ValueError)):
+            with mock.patch('lib.logger', mock.Mock()):
+                self.assertEqual(lib.get_url(None, None, None), (None, 'ERROR', None))
+
+    def test_get_url_new(self):
+        with mock.patch('lib.make_pycurl_request',
+                        mock.Mock(return_value=('content', 'http://odnoklassniki.ru/azazst.redirect'))):
+            with mock.patch('lib.logger', mock.Mock()):
+                self.assertEqual(lib.get_url('http://odnoklassniki.ru/st.redirect', None, None),
+                                 (None, None, 'content'))
+
+    def test_get_url_new_url_empty(self):
+        with mock.patch('lib.make_pycurl_request',
+                        mock.Mock(return_value=(None, 'url'))):
+            with mock.patch('lib.logger', mock.Mock()):
+                self.assertEqual(lib.get_url(None, None, None), ('url', 'http_status', None))
+
+    def test_check_for_meta_len(self):
+        html = '<meta content="" http-equiv="refresh">'
+        self.assertEqual(lib.check_for_meta(html, 'http://localhost'), None)
+
+    def test_check_for_meta_all(self):
+        html = '<meta content=";url=index.html" http-equiv="refresh">'
+        self.assertEqual(lib.check_for_meta(html, 'http://localhost/'), 'http://localhost/index.html')
+
+    def test_check_for_meta_not_m(self):
+        html = '<meta content=";" http-equiv="refresh">'
+        self.assertEqual(lib.check_for_meta(html, 'http://localhost/'), None)
+
+    def test_check_for_meta_none(self):
+        html = '<>'
+        self.assertEqual(lib.check_for_meta(html, 'http://localhost/'), None)
