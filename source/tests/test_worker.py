@@ -155,6 +155,7 @@ class WorkerTestCase(unittest.TestCase):
         config_mock = mock.Mock()
 
         logger_mock = mock.Mock()
+        logger_mock.exception = mock.Mock()
 
         tube_mock = mock.Mock()
         tube_mock.opt = {'tube': 'tube'}
@@ -174,4 +175,4 @@ class WorkerTestCase(unittest.TestCase):
                 with mock.patch('os.path.exists', mock.Mock(side_effect=[True, False]), create=True):
                     with mock.patch('lib.worker.get_redirect_history_from_task', get_redirect_mock, create=True):
                         worker(config_mock, None)
-                        logger_mock.exception.assert_called_once()
+                        self.assertEqual(logger_mock.exception.call_count, 1)

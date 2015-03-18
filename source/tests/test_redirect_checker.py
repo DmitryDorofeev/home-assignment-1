@@ -88,7 +88,7 @@ class RedirectCheckerTestCase(unittest.TestCase):
                                 with mock.patch('redirect_checker.worker', worker_mock, create=True):
                                     with mock.patch('redirect_checker.sleep', mock.Mock(), create=True):
                                         redirect_checker.main_loop(config_mock)
-                                        self.assertTrue(spawn_mock.called)
+                                        self.assertEqual(spawn_mock.call_count, 1)
 
     def test_main_loop_with_good_network_status_without_workers(self):
         config_mock = mock.Mock()
@@ -132,5 +132,5 @@ class RedirectCheckerTestCase(unittest.TestCase):
                                 with mock.patch('redirect_checker.worker', worker_mock, create=True):
                                     with mock.patch('redirect_checker.sleep', mock.Mock(), create=True):
                                         redirect_checker.main_loop(config_mock)
-                                        self.assertTrue(child.terminate.called)
+                                        self.assertEqual(child.terminate.call_count, 2)
 

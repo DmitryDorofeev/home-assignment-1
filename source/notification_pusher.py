@@ -24,7 +24,8 @@ import tarantool_queue
 SIGNAL_EXIT_CODE_OFFSET = 128
 """Коды выхода рассчитываются как 128 + номер сигнала"""
 
-run_application = True
+def run_application():
+    return True
 """Флаг, определяющий, должно ли приложение продолжать работу."""
 
 exit_code = 0
@@ -32,6 +33,8 @@ exit_code = 0
 
 logger = logging.getLogger('pusher')
 
+def my_mocked_method_for_test(param=None):
+    pass
 
 def notification_worker(task, task_queue, *args, **kwargs):
     """
@@ -90,6 +93,7 @@ def done_with_processed_tasks(task_queue):
             except tarantool.DatabaseError as exc:
                 logger.exception(exc)
         except gevent_queue.Empty:
+            my_mocked_method_for_test()
             break
 
 
@@ -110,6 +114,7 @@ def stop_handler(signum):
     run_application = False
     exit_code = SIGNAL_EXIT_CODE_OFFSET + signum
 
+    my_mocked_method_for_test(exit_code)
 
 def main_loop(config):
     """
@@ -150,7 +155,7 @@ def main_loop(config):
         count=config.WORKER_POOL_SIZE, sleep=config.SLEEP
     ))
 
-    while run_application:
+    while run_application():
         free_workers_count = worker_pool.free_count()
 
         logger.debug('Pool has {count} free workers.'.format(count=free_workers_count))
@@ -221,7 +226,7 @@ def main(argv):
 
     install_signal_handlers()
 
-    while run_application:
+    while run_application():
         try:
             main_loop(config)
         except Exception as exc:
