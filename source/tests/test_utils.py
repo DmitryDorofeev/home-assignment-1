@@ -68,19 +68,17 @@ class UtilsTestCase(unittest.TestCase):
         m_open().write.assert_called_once_with(str(pid))
 
     def test_parse_config(self):
-        cfg = utils.Config()
-        with mock.patch('__builtin__.execfile', mock.Mock(side_effect=self.execfile_patch)):
-            self.assertEqual(type(utils.load_config_from_pyfile('filepath')), type(cfg))
-
-    def test_parse_config(self):
-        def file_mock(filepath, varaibles):
-            varaibles.update({
-                'lower': None,
-                'UPPER': None
+        def file_mock(filepath, variables):
+            variables.update({
+                'testvar': 'str',
+                'TEST': True
             })
         cfg = utils.Config()
         with mock.patch('__builtin__.execfile', mock.Mock(side_effect=file_mock)):
             self.assertEqual(type(utils.load_config_from_pyfile('filepath')), type(cfg))
+            with self.assertRaises(AttributeError):
+                utils.load_config_from_pyfile('filepath').testvar
+            self.assertEqual(utils.load_config_from_pyfile('filepath').TEST, True)
 
     def test_get_tube(self):
         name_str = 'name'

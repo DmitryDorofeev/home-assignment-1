@@ -5,7 +5,9 @@ from gevent import queue as gevent_queue
 import mock
 import requests
 import tarantool
-from notification_pusher import notification_worker, done_with_processed_tasks, stop_handler, install_signal_handlers, SIGNAL_EXIT_CODE_OFFSET, main_loop, main
+from notification_pusher import notification_worker, done_with_processed_tasks, stop_handler, install_signal_handlers, \
+    SIGNAL_EXIT_CODE_OFFSET, main_loop, main
+
 
 class NotificationPusherTestCase(unittest.TestCase):
     def test_notification_worker(self):
@@ -45,7 +47,8 @@ class NotificationPusherTestCase(unittest.TestCase):
         queue_mock = mock.Mock()
         logger_mock = mock.Mock()
         logger_mock.exception = mock.Mock()
-        with mock.patch('notification_pusher.current_thread', mock.Mock(side_effect=requests.RequestException), create=True):
+        with mock.patch('notification_pusher.current_thread', mock.Mock(side_effect=requests.RequestException),
+                        create=True):
             with mock.patch('notification_pusher.logger', logger_mock, create=True):
                 notification_worker(task_mock, queue_mock)
                 self.assertEqual(logger_mock.exception.call_count, 1)
@@ -112,9 +115,12 @@ class NotificationPusherTestCase(unittest.TestCase):
             with mock.patch('notification_pusher.tarantool_queue', mock.Mock(return_value=queue_mock), create=True):
                 with mock.patch('notification_pusher.Pool', mock.Mock(return_value=worker_pool_mock), create=True):
                     with mock.patch('notification_pusher.gevent_queue', gevent_mock, create=True):
-                        with mock.patch('notification_pusher.run_application', mock.Mock(side_effect=[True, False]), create=True):
-                            with mock.patch('notification_pusher.Greenlet', mock.Mock(return_value=worker_mock), create=True):
-                                with mock.patch('notification_pusher.done_with_processed_tasks', mock.Mock(), create=True):
+                        with mock.patch('notification_pusher.run_application', mock.Mock(side_effect=[True, False]),
+                                        create=True):
+                            with mock.patch('notification_pusher.Greenlet', mock.Mock(return_value=worker_mock),
+                                            create=True):
+                                with mock.patch('notification_pusher.done_with_processed_tasks', mock.Mock(),
+                                                create=True):
                                     with mock.patch('notification_pusher.sleep', mock.Mock(), create=True):
                                         main_loop(config_mock)
                                         self.assertEqual(worker_pool_mock.add.call_count, 1)
@@ -143,7 +149,8 @@ class NotificationPusherTestCase(unittest.TestCase):
             with mock.patch('notification_pusher.tarantool_queue', tarantool_queue_mock, create=True):
                 with mock.patch('notification_pusher.Pool', mock.Mock(return_value=worker_pool_mock), create=True):
                     with mock.patch('notification_pusher.gevent_queue', gevent_mock, create=True):
-                        with mock.patch('notification_pusher.run_application', mock.Mock(side_effect=[True, False]), create=True):
+                        with mock.patch('notification_pusher.run_application', mock.Mock(side_effect=[True, False]),
+                                        create=True):
                             with mock.patch('notification_pusher.done_with_processed_tasks', mock.Mock(), create=True):
                                 with mock.patch('notification_pusher.sleep', mock.Mock(), create=True):
                                     main_loop(config_mock)
@@ -163,14 +170,18 @@ class NotificationPusherTestCase(unittest.TestCase):
         with mock.patch('lib.utils.parse_cmd_args', parse_mock, create=True):
             with mock.patch('lib.utils.daemonize', daemonize_mock, create=True):
                 with mock.patch('lib.utils.create_pidfile', create_pidfile_mock, create=True):
-                    with mock.patch('lib.utils.load_config_from_pyfile', mock.Mock(return_value=config_mock), create=True):
+                    with mock.patch('lib.utils.load_config_from_pyfile', mock.Mock(return_value=config_mock),
+                                    create=True):
                         with mock.patch('os.path', mock.Mock(), create=True):
                             with mock.patch('notification_pusher.patch_all', mock.Mock(), create=True):
                                 with mock.patch('notification_pusher.dictConfig', mock.Mock(), create=True):
                                     with mock.patch('notification_pusher.current_thread', mock.Mock(), create=True):
-                                        with mock.patch('notification_pusher.install_signal_handlers', mock.Mock(), create=True):
-                                            with mock.patch('notification_pusher.run_application', mock.Mock(side_effect=[True, False]), create=True):
-                                                with mock.patch('notification_pusher.main_loop', mock.Mock(), create=True):
+                                        with mock.patch('notification_pusher.install_signal_handlers', mock.Mock(),
+                                                        create=True):
+                                            with mock.patch('notification_pusher.run_application',
+                                                            mock.Mock(side_effect=[True, False]), create=True):
+                                                with mock.patch('notification_pusher.main_loop', mock.Mock(),
+                                                                create=True):
                                                     self.assertEqual(main([]), 0)
                                                     self.assertFalse(daemonize_mock.called)
                                                     self.assertFalse(create_pidfile_mock.called)
@@ -189,14 +200,18 @@ class NotificationPusherTestCase(unittest.TestCase):
         with mock.patch('lib.utils.parse_cmd_args', parse_mock, create=True):
             with mock.patch('lib.utils.daemonize', daemonize_mock, create=True):
                 with mock.patch('lib.utils.create_pidfile', create_pidfile_mock, create=True):
-                    with mock.patch('lib.utils.load_config_from_pyfile', mock.Mock(return_value=config_mock), create=True):
+                    with mock.patch('lib.utils.load_config_from_pyfile', mock.Mock(return_value=config_mock),
+                                    create=True):
                         with mock.patch('os.path', mock.Mock(), create=True):
                             with mock.patch('notification_pusher.patch_all', mock.Mock(), create=True):
                                 with mock.patch('notification_pusher.dictConfig', mock.Mock(), create=True):
                                     with mock.patch('notification_pusher.current_thread', mock.Mock(), create=True):
-                                        with mock.patch('notification_pusher.install_signal_handlers', mock.Mock(), create=True):
-                                            with mock.patch('notification_pusher.run_application', mock.Mock(side_effect=[True, False]), create=True):
-                                                with mock.patch('notification_pusher.main_loop', mock.Mock(), create=True):
+                                        with mock.patch('notification_pusher.install_signal_handlers', mock.Mock(),
+                                                        create=True):
+                                            with mock.patch('notification_pusher.run_application',
+                                                            mock.Mock(side_effect=[True, False]), create=True):
+                                                with mock.patch('notification_pusher.main_loop', mock.Mock(),
+                                                                create=True):
                                                     self.assertEqual(main([]), 0)
                                                     self.assertEqual(daemonize_mock.call_count, 1)
                                                     self.assertEqual(create_pidfile_mock.call_count, 1)
@@ -218,15 +233,21 @@ class NotificationPusherTestCase(unittest.TestCase):
         with mock.patch('lib.utils.parse_cmd_args', parse_mock, create=True):
             with mock.patch('lib.utils.daemonize', daemonize_mock, create=True):
                 with mock.patch('lib.utils.create_pidfile', create_pidfile_mock, create=True):
-                    with mock.patch('lib.utils.load_config_from_pyfile', mock.Mock(return_value=config_mock), create=True):
+                    with mock.patch('lib.utils.load_config_from_pyfile', mock.Mock(return_value=config_mock),
+                                    create=True):
                         with mock.patch('os.path', mock.Mock(), create=True):
                             with mock.patch('notification_pusher.patch_all', mock.Mock(), create=True):
                                 with mock.patch('notification_pusher.dictConfig', mock.Mock(), create=True):
                                     with mock.patch('notification_pusher.current_thread', mock.Mock(), create=True):
-                                        with mock.patch('notification_pusher.install_signal_handlers', mock.Mock(), create=True):
-                                            with mock.patch('notification_pusher.run_application', mock.Mock(side_effect=[True, False]), create=True):
-                                                with mock.patch('notification_pusher.main_loop', main_loop_mock, create=True):
-                                                    with mock.patch('notification_pusher.logger', mock.Mock(), create=True):
-                                                        with mock.patch('notification_pusher.sleep', sleep_mock, create=True):
+                                        with mock.patch('notification_pusher.install_signal_handlers', mock.Mock(),
+                                                        create=True):
+                                            with mock.patch('notification_pusher.run_application',
+                                                            mock.Mock(side_effect=[True, False]), create=True):
+                                                with mock.patch('notification_pusher.main_loop', main_loop_mock,
+                                                                create=True):
+                                                    with mock.patch('notification_pusher.logger', mock.Mock(),
+                                                                    create=True):
+                                                        with mock.patch('notification_pusher.sleep', sleep_mock,
+                                                                        create=True):
                                                             self.assertEqual(main([]), 0)
                                                             self.assertEqual(sleep_mock.call_count, 1)

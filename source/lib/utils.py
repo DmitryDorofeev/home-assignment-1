@@ -53,7 +53,6 @@ def load_config_from_pyfile(filepath):
     variables = {}
 
     execfile(filepath, variables)
-
     for key, value in variables.iteritems():
         if key.isupper():
             setattr(cfg, key, value)
