@@ -1,7 +1,6 @@
 #!/usr/bin/env python2.7
 # coding: utf-8
 
-import argparse
 import json
 import logging
 import os
@@ -33,7 +32,7 @@ exit_code = 0
 
 logger = logging.getLogger('pusher')
 
-def my_mocked_method_for_test(param=None):
+def my_mocked_method_for_test(*args, **kwargs):
     pass
 
 def notification_worker(task, task_queue, *args, **kwargs):
