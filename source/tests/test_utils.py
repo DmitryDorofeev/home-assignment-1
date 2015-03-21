@@ -5,7 +5,7 @@ from lib import utils
 
 
 class UtilsTestCase(unittest.TestCase):
-    def test_parse_cmd_args(self):
+    def test_parse_cmd_args_config(self):
         args = ['-c', 'test']
         parsed_arguments = utils.parse_cmd_args(args)
 
@@ -13,12 +13,18 @@ class UtilsTestCase(unittest.TestCase):
         self.assertFalse(parsed_arguments.daemon)
         self.assertIsNone(parsed_arguments.pidfile)
 
-        args2 = ['-c', 'test', '-d']
-        parsed_arguments2 = utils.parse_cmd_args(args2)
+    def test_parse_cmd_args_daemon(self):
+        args = ['-c', 'test', '-d']
+        parsed_arguments = utils.parse_cmd_args(args)
 
-        self.assertEqual(parsed_arguments2.config, 'test')
-        self.assertTrue(parsed_arguments2.daemon)
+        self.assertEqual(parsed_arguments.config, 'test')
+        self.assertTrue(parsed_arguments.daemon)
         self.assertIsNone(parsed_arguments.pidfile)
+
+    def test_parse_cmd_args_err(self):
+        args = []
+        with self.assertRaises(BaseException):
+            parsed_arguments = utils.parse_cmd_args(args)
 
     def test_daemonize(self):
         pid = 7
@@ -26,7 +32,6 @@ class UtilsTestCase(unittest.TestCase):
             with mock.patch('os._exit', mock.Mock()) as mock_exit:
                 with mock.patch('os.setsid', mock.Mock()):
                     utils.daemonize()
-                    self.assertTrue(mock_exit.called)
                     self.assertEqual(mock_exit.call_count, 1)
 
     def test_daemonize_exc(self):
@@ -73,6 +78,7 @@ class UtilsTestCase(unittest.TestCase):
                 'testvar': 'str',
                 'TEST': True
             })
+
         cfg = utils.Config()
         with mock.patch('__builtin__.execfile', mock.Mock(side_effect=file_mock)):
             self.assertEqual(type(utils.load_config_from_pyfile('filepath')), type(cfg))

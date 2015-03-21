@@ -6,10 +6,19 @@ import lib
 
 class InitTestCase(unittest.TestCase):
     def test_to_unicode_ansi(self):
-        self.assertEqual(lib.to_unicode(chr(88)), 'X')
+        res = lib.to_unicode('Xss')
+        self.assertEqual(res, u'Xss')
+        self.assertTrue(isinstance(res, unicode))
 
     def test_to_unicode_from_unicode(self):
-        self.assertEqual(lib.to_unicode(unichr(88)), 'X')
+        res = lib.to_unicode(u'TEsT')
+        self.assertEqual(res, u'TEsT')
+        self.assertTrue(isinstance(res, unicode))
+
+    def test_to_str_from_unicode(self):
+        res = lib.to_str(u'sample')
+        self.assertEqual(res, 'sample')
+        self.assertTrue(isinstance(res, str))
 
     def test_prepare_url_none(self):
         self.assertIsNone(lib.prepare_url(None))
@@ -41,16 +50,33 @@ class InitTestCase(unittest.TestCase):
             self.assertEqual(lib.make_pycurl_request('url', None), ('', 'url'))
 
     def test_make_pycurl_req_user_agent(self):
+
+        def ret(param):
+            return param
+
         curl_mock = mock.Mock()
-        curl_mock.getinfo.return_value = 'url'
+        curl_mock.REDIRECT_URL = 'url'
+        curl_mock.getinfo.side_effect = ret
         with mock.patch('lib.pycurl.Curl', mock.Mock(return_value=curl_mock)):
             self.assertEqual(lib.make_pycurl_request('url', None, 'user_agent'), ('', 'url'))
 
     def test_make_pycurl_req_redirect_url_is_None(self):
+        def ret(param):
+            return param
+
         curl_mock = mock.Mock()
-        curl_mock.getinfo.return_value = None
+        curl_mock.REDIRECT_URL = None
+        curl_mock.getinfo.side_effect = ret
         with mock.patch('lib.pycurl.Curl', mock.Mock(return_value=curl_mock)):
             self.assertEqual(lib.make_pycurl_request('url', None), ('', None))
+
+    def test_make_pycurl_req_timeout(self):
+
+        curl_mock = mock.Mock()
+        curl_mock.getinfo.return_value = 'url'
+        with mock.patch('lib.pycurl.Curl', mock.Mock(return_value=curl_mock)):
+            self.assertEqual(lib.make_pycurl_request('url', 7), ('', 'url'))
+            curl_mock.setopt.assert_called_with(curl_mock.TIMEOUT, 7)
 
     def test_get_counters(self):
         self.assertEqual(lib.get_counters('google-analytics.com/ga.js'), ['GOOGLE_ANALYTICS'])
@@ -127,19 +153,25 @@ class InitTestCase(unittest.TestCase):
             self.assertEqual(lib.get_redirect_history('url', None), ([], ['url'], []))
 
     def test_get_redirect_history_not_redirect_url(self):
-        with mock.patch('lib.re.match', mock.Mock(return_value=False)):
+        with mock.patch('lib.re.match', mock.Mock(return_value=None)):
             with mock.patch('lib.get_url', mock.Mock(return_value=(None, None, None))):
                 self.assertEqual(lib.get_redirect_history('url', None), ([], ['url'], []))
 
     def test_get_redirect_history_redirect_type_error(self):
-        with mock.patch('lib.re.match', mock.Mock(return_value=False)):
+        with mock.patch('lib.re.match', mock.Mock(return_value=None)):
             with mock.patch('lib.get_url', mock.Mock(return_value=('url', 'ERROR', True))):
                 self.assertEqual(lib.get_redirect_history('url', None), (['ERROR'], ['url', 'url'], []))
 
     def test_get_redirect_history(self):
-        with mock.patch('lib.re.match', mock.Mock(return_value=False)):
+        with mock.patch('lib.re.match', mock.Mock(return_value=None)):
             with mock.patch('lib.get_url', mock.Mock(return_value=('url', None, None))):
                 self.assertEqual(lib.get_redirect_history('url', None), ([None], ['url', 'url'], []))
+
+    def test_get_redirect_history_with_content(self):
+        with mock.patch('lib.re.match', mock.Mock(return_value=False)):
+            with mock.patch('lib.get_counters', mock.Mock(return_value=['ga', 'ym'])):
+                with mock.patch('lib.get_url', mock.Mock(return_value=('url', None, 'somecontent'))):
+                    self.assertEqual(lib.get_redirect_history('url', None), ([None], ['url', 'url'], ['ga', 'ym']))
 
     def test_get_redirect_history_with_some_iterations(self):
         with mock.patch('lib.re.match', mock.Mock(return_value=False)):
