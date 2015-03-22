@@ -109,7 +109,6 @@ class WorkerTestCase(unittest.TestCase):
         tube_mock.opt = {'tube': 'tube'}
 
         task_mock = mock.Mock()
-        task_mock.task_id = None
         task_mock.meta = mock.Mock(return_value={'pri': 'pri'})
 
         get_tube_mock = mock.Mock(return_value=tube_mock)
@@ -151,7 +150,6 @@ class WorkerTestCase(unittest.TestCase):
         tube_mock.put = mock.Mock()
 
         task_mock = mock.Mock()
-        task_mock.task_id = None
         task_mock.data = {'url': 'error_url', 'url_id': 5}
         task_mock.meta = mock.Mock(return_value={'pri': 'pri'})
         task_mock.ack = mock.Mock()
@@ -183,7 +181,6 @@ class WorkerTestCase(unittest.TestCase):
 
         task_mock = mock.Mock()
         task_mock.data = {'url': 'url', 'url_id': 7, 'recheck': False}
-        task_mock.task_id = None
         task_mock.ack = mock.Mock()
 
         tube_mock.take = mock.Mock(return_value=task_mock)
@@ -219,14 +216,15 @@ class WorkerTestCase(unittest.TestCase):
         tube_mock.opt = {'tube': 'tube'}
 
         task_mock = mock.Mock()
-        task_mock.task_id = None
+        task_mock.data = {'url': 'error_url', 'url_id': 5}
+        task_mock.meta = mock.Mock(return_value={'pri': 'pri'})
         task_mock.ack = mock.Mock(side_effect=DatabaseError)
 
         tube_mock.take = mock.Mock(return_value=task_mock)
 
         get_tube_mock = mock.Mock(return_value=tube_mock)
 
-        get_redirect_mock = mock.Mock(return_value=(False, None))
+        get_redirect_mock = mock.Mock(return_value=(True, task_mock.data))
 
         mocked_method = mock.Mock()
         with mock.patch('lib.worker.get_tube', get_tube_mock, create=True):
