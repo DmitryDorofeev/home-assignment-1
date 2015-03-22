@@ -112,45 +112,15 @@ def stop_handler(signum):
 
     my_mocked_method_for_test(exit_code, run_application)
 
-def main_loop(config):
+
+def main_loop_run(config, worker_pool, tube, processed_task_queue):
     """
-    Основной цикл приложения.
-
-    :param config: конфигурация
-    :type config: Config
-
     Алгоритм:
-     * Открываем соединение с tarantool.queue, использую config.QUEUE_* настройки.
-     * Создаем пул обработчиков.
-     * Создаем очередь куда обработчики будут помещать выполненные задачи.
-     * Пока количество обработчиков <= config.WORKER_POOL_SIZE, берем задачу из tarantool.queue
+    * Пока количество обработчиков <= config.WORKER_POOL_SIZE, берем задачу из tarantool.queue
        и запускаем greenlet для ее обработки.
-     * Посылаем уведомления о том, что задачи завершены в tarantool.queue.
-     * Спим config.SLEEP секунд.
+    * Посылаем уведомления о том, что задачи завершены в tarantool.queue.
+    * Спим config.SLEEP секунд.
     """
-    logger.info('Connect to queue server on {host}:{port} space #{space}.'.format(
-        host=config.QUEUE_HOST, port=config.QUEUE_PORT, space=config.QUEUE_SPACE
-    ))
-    queue = tarantool_queue.Queue(
-        host=config.QUEUE_HOST, port=config.QUEUE_PORT, space=config.QUEUE_SPACE
-    )
-
-    logger.info('Use tube [{tube}], take timeout={take_timeout}.'.format(
-        tube=config.QUEUE_TUBE,
-        take_timeout=config.QUEUE_TAKE_TIMEOUT
-    ))
-
-    tube = queue.tube(config.QUEUE_TUBE)
-
-    logger.info('Create worker pool[{size}].'.format(size=config.WORKER_POOL_SIZE))
-    worker_pool = Pool(config.WORKER_POOL_SIZE)
-
-    processed_task_queue = gevent_queue.Queue()
-
-    logger.info('Run main loop. Worker pool size={count}. Sleep time is {sleep}.'.format(
-        count=config.WORKER_POOL_SIZE, sleep=config.SLEEP
-    ))
-
     while mocked_run_application():
         free_workers_count = worker_pool.free_count()
 
@@ -185,6 +155,45 @@ def main_loop(config):
         logger.info('Stop application loop.')
 
 
+def main_loop(config):
+    """
+    Основной цикл приложения.
+
+    :param config: конфигурация
+    :type config: Config
+
+    Алгоритм:
+     * Открываем соединение с tarantool.queue, использую config.QUEUE_* настройки.
+     * Создаем пул обработчиков.
+     * Создаем очередь куда обработчики будут помещать выполненные задачи.
+     * Запускаем цикл обработки
+    """
+    logger.info('Connect to queue server on {host}:{port} space #{space}.'.format(
+        host=config.QUEUE_HOST, port=config.QUEUE_PORT, space=config.QUEUE_SPACE
+    ))
+    queue = tarantool_queue.Queue(
+        host=config.QUEUE_HOST, port=config.QUEUE_PORT, space=config.QUEUE_SPACE
+    )
+
+    logger.info('Use tube [{tube}], take timeout={take_timeout}.'.format(
+        tube=config.QUEUE_TUBE,
+        take_timeout=config.QUEUE_TAKE_TIMEOUT
+    ))
+
+    tube = queue.tube(config.QUEUE_TUBE)
+
+    logger.info('Create worker pool[{size}].'.format(size=config.WORKER_POOL_SIZE))
+    worker_pool = Pool(config.WORKER_POOL_SIZE)
+
+    processed_task_queue = gevent_queue.Queue()
+
+    logger.info('Run main loop. Worker pool size={count}. Sleep time is {sleep}.'.format(
+        count=config.WORKER_POOL_SIZE, sleep=config.SLEEP
+    ))
+
+    main_loop_run(config, worker_pool, tube, processed_task_queue)
+
+
 def install_signal_handlers():
     """
     Устанавливает обработчики системных сигналов.
@@ -193,6 +202,22 @@ def install_signal_handlers():
 
     for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT):
         gevent.signal(signum, stop_handler, signum)
+
+
+def run(config):
+    while mocked_run_application():
+        try:
+            main_loop(config)
+            my_mocked_method_for_test('main_loop')
+        except Exception as exc:
+            logger.error(
+                'Error in main loop. Go to sleep on {} second(s).'.format(config.SLEEP_ON_FAIL)
+            )
+            logger.exception(exc)
+
+            sleep(config.SLEEP_ON_FAIL)
+    else:
+        logger.info('Stop application loop in main.')
 
 
 def main(argv):
@@ -214,19 +239,7 @@ def main(argv):
 
     install_signal_handlers()
 
-    while mocked_run_application():
-        try:
-            main_loop(config)
-            my_mocked_method_for_test('main_loop')
-        except Exception as exc:
-            logger.error(
-                'Error in main loop. Go to sleep on {} second(s).'.format(config.SLEEP_ON_FAIL)
-            )
-            logger.exception(exc)
-
-            sleep(config.SLEEP_ON_FAIL)
-    else:
-        logger.info('Stop application loop in main.')
+    run(config)
 
     return exit_code
 
