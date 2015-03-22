@@ -24,24 +24,7 @@ class InitTestCase(unittest.TestCase):
         self.assertIsNone(lib.prepare_url(None))
 
     def test_prepare_url_str(self):
-        with mock.patch('lib.urlunparse', mock.Mock(return_value='somevalue')):
-            self.assertEqual(lib.prepare_url('url'), 'somevalue')
-
-    def test_prepare_url_err(self):
-        with mock.patch("lib.urlparse", mock.Mock(return_value=(None, u'.', None, None, None, None))):
-            with mock.patch("lib.quote", mock.Mock()):
-                with mock.patch("lib.quote_plus", mock.Mock()):
-                    with mock.patch("lib.urlunparse", mock.Mock(return_value='somevalue')):
-                        self.assertEqual(lib.prepare_url('url'), 'somevalue')
-
-    def test_prepare_url_exception(self):
-        netloc = mock.Mock()
-        netloc.encode.side_effect = UnicodeError
-        with mock.patch("lib.urlparse", mock.Mock(return_value=(None, netloc, None, None, None, None))):
-            with mock.patch("lib.quote", mock.Mock()):
-                with mock.patch("lib.quote_plus", mock.Mock()):
-                    with mock.patch("lib.urlunparse", mock.Mock(return_value='somevalue')):
-                        self.assertEqual(lib.prepare_url('url'), 'somevalue')
+        self.assertEqual(lib.prepare_url('url&'), 'url%26')
 
     def test_make_pycurl_req(self):
         curl_mock = mock.Mock()
