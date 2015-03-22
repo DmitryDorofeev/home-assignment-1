@@ -4,11 +4,14 @@ import mock
 import requests
 import tarantool
 from notification_pusher import notification_worker, done_with_processed_tasks, stop_handler, install_signal_handlers, \
-    SIGNAL_EXIT_CODE_OFFSET, main_loop, main, run, main_loop_run
+    SIGNAL_EXIT_CODE_OFFSET, main_loop, main, run, main_loop_run, run_application, mocked_run_application
 
 __author__ = 'leshiy1295'
 
 class NotificationPusherTestCase(unittest.TestCase):
+    def test_mocked_run_application(self):
+        self.assertEqual(mocked_run_application(), run_application)
+
     def test_notification_worker(self):
         task_mock = mock.Mock()
         task_mock.task_id = 1
