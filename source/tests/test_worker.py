@@ -45,14 +45,14 @@ class WorkerTestCase(unittest.TestCase):
         task_mock.data = {'url': 'url', 'url_id': 7, 'suspicious': 'some text'}
         with mock.patch('lib.worker.to_unicode', mock.Mock(return_value=u'url'), create=True):
             with mock.patch('lib.worker.logger', mock.Mock(), create=True):
-                with mock.patch('lib.worker.get_redirect_history', mock.Mock(return_value=(['http_status'],
-                                                                                           [u'url'],
+                with mock.patch('lib.worker.get_redirect_history', mock.Mock(return_value=(['meta_tag', 'http_status'],
+                                                                                           [u'another_url', u'url'],
                                                                                            ['GOOGLE_ANALYTICS']))):
                     is_input, data = get_redirect_history_from_task(task_mock, 10)
                     self.assertFalse(is_input)
                     self.assertEqual({'url_id': 7,
-                                      'result': [['http_status'],
-                                                 [u'url'],
+                                      'result': [['meta_tag', 'http_status'],
+                                                 [u'another_url', u'url'],
                                                  ['GOOGLE_ANALYTICS']],
                                       'check_type': 'normal',
                                       'suspicious': 'some text'}, data)
@@ -109,20 +109,19 @@ class WorkerTestCase(unittest.TestCase):
         tube_mock.opt = {'tube': 'tube'}
 
         task_mock = mock.Mock()
-        task_mock.task_id = None
         task_mock.meta = mock.Mock(return_value={'pri': 'pri'})
-
-        tube_mock.take = mock.Mock(side_effect=[task_mock, task_mock, task_mock, None])
 
         get_tube_mock = mock.Mock(return_value=tube_mock)
 
+        mocked_method = mock.Mock()
         with mock.patch('lib.worker.get_tube', get_tube_mock, create=True):
             with mock.patch('lib.worker.logger', mock.Mock(), create=True):
                 with mock.patch('os.path.exists', mock.Mock(return_value=False), create=True):
-                    worker(config_mock, None)
-                    self.assertFalse(tube_mock.take.called)
+                    with mock.patch('lib.worker.my_mocked_method_for_test', mocked_method, create=True):
+                        worker(config_mock, None)
+                        mocked_method.assert_called_once_with('return')
 
-    def test_worker_with_bad_task(self):
+    def test_worker_with_no_task(self):
         config_mock = mock.Mock()
 
         tube_mock = mock.Mock()
@@ -132,48 +131,26 @@ class WorkerTestCase(unittest.TestCase):
 
         get_tube_mock = mock.Mock(return_value=tube_mock)
 
-        get_redirect_mock = mock.Mock(return_value=None)
-
+        mocked_method = mock.Mock()
         with mock.patch('lib.worker.get_tube', get_tube_mock, create=True):
             with mock.patch('lib.worker.logger', mock.Mock(), create=True):
                 with mock.patch('os.path.exists', mock.Mock(side_effect=[True, False]), create=True):
-                    with mock.patch('lib.worker.get_redirect_history_from_task', get_redirect_mock, create=True):
+                    with mock.patch('lib.worker.my_mocked_method_for_test', mocked_method, create=True):
                         worker(config_mock, None)
-                        self.assertFalse(get_redirect_mock.called)
+                        self.assertEqual(mocked_method.call_count, 2)
+                        mocked_method.assert_any_call('no_task')
+                        mocked_method.assert_any_call('return')
 
-    def test_worker_with_good_task_and_bad_result(self):
+    def test_worker_with_true_is_input(self):
         config_mock = mock.Mock()
+        config_mock.RECHECK_DELAY = 300
 
         tube_mock = mock.Mock()
         tube_mock.opt = {'tube': 'tube'}
         tube_mock.put = mock.Mock()
 
         task_mock = mock.Mock()
-        task_mock.task_id = None
-        task_mock.meta = mock.Mock(return_value={'pri': 'pri'})
-
-        tube_mock.take = mock.Mock(return_value=task_mock)
-
-        get_tube_mock = mock.Mock(return_value=tube_mock)
-
-        get_redirect_mock = mock.Mock(return_value=None)
-
-        with mock.patch('lib.worker.get_tube', get_tube_mock, create=True):
-            with mock.patch('lib.worker.logger', mock.Mock(), create=True):
-                with mock.patch('os.path.exists', mock.Mock(side_effect=[True, False]), create=True):
-                    with mock.patch('lib.worker.get_redirect_history_from_task', get_redirect_mock, create=True):
-                        worker(config_mock, None)
-                        self.assertFalse(tube_mock.put.called)
-
-    def test_worker_with_good_task_and_good_result_and_true_is_input(self):
-        config_mock = mock.Mock()
-
-        tube_mock = mock.Mock()
-        tube_mock.opt = {'tube': 'tube'}
-        tube_mock.put = mock.Mock()
-
-        task_mock = mock.Mock()
-        task_mock.task_id = None
+        task_mock.data = {'url': 'error_url', 'url_id': 5}
         task_mock.meta = mock.Mock(return_value={'pri': 'pri'})
         task_mock.ack = mock.Mock()
 
@@ -181,17 +158,21 @@ class WorkerTestCase(unittest.TestCase):
 
         get_tube_mock = mock.Mock(return_value=tube_mock)
 
-        get_redirect_mock = mock.Mock(return_value=(True, None))
+        get_redirect_mock = mock.Mock(return_value=(True, task_mock.data))
 
+        mocked_method = mock.Mock()
         with mock.patch('lib.worker.get_tube', get_tube_mock, create=True):
             with mock.patch('lib.worker.logger', mock.Mock(), create=True):
                 with mock.patch('os.path.exists', mock.Mock(side_effect=[True, False]), create=True):
                     with mock.patch('lib.worker.get_redirect_history_from_task', get_redirect_mock, create=True):
-                        worker(config_mock, None)
-                        task_mock.meta.assert_called_once_with()
+                        with mock.patch('lib.worker.my_mocked_method_for_test', mocked_method, create=True):
+                            worker(config_mock, None)
+                            tube_mock.put.assert_called_once_with(task_mock.data, delay=config_mock.RECHECK_DELAY, pri='pri')
+                            self.assertEqual(mocked_method.call_count, 2)
+                            mocked_method.assert_any_call('task_done')
+                            mocked_method.assert_any_call('return')
 
-
-    def test_worker_with_good_task_and_good_result_and_false_is_input(self):
+    def test_worker_with_false_is_input(self):
         config_mock = mock.Mock()
 
         tube_mock = mock.Mock()
@@ -199,21 +180,30 @@ class WorkerTestCase(unittest.TestCase):
         tube_mock.put = mock.Mock()
 
         task_mock = mock.Mock()
-        task_mock.task_id = None
+        task_mock.data = {'url': 'url', 'url_id': 7, 'recheck': False}
         task_mock.ack = mock.Mock()
 
         tube_mock.take = mock.Mock(return_value=task_mock)
 
         get_tube_mock = mock.Mock(return_value=tube_mock)
 
-        get_redirect_mock = mock.Mock(return_value=(False, None))
-
+        data = {'url_id': 7,
+                'result': [['meta_tag', 'http_status'],
+                           [u'another_url', u'url'],
+                           ['GOOGLE_ANALYTICS']],
+                'check_type': 'normal'}
+        get_redirect_mock = mock.Mock(return_value=(False, data))
+        mocked_method = mock.Mock()
         with mock.patch('lib.worker.get_tube', get_tube_mock, create=True):
             with mock.patch('lib.worker.logger', mock.Mock(), create=True):
                 with mock.patch('os.path.exists', mock.Mock(side_effect=[True, False]), create=True):
                     with mock.patch('lib.worker.get_redirect_history_from_task', get_redirect_mock, create=True):
-                        worker(config_mock, None)
-                        tube_mock.put.assert_called_once_with(None)
+                        with mock.patch('lib.worker.my_mocked_method_for_test', mocked_method, create=True):
+                            worker(config_mock, None)
+                            tube_mock.put.assert_called_once_with(data)
+                            self.assertEqual(mocked_method.call_count, 2)
+                            mocked_method.assert_any_call('task_done')
+                            mocked_method.assert_any_call('return')
 
 
     def test_worker_with_exception(self):
@@ -226,18 +216,23 @@ class WorkerTestCase(unittest.TestCase):
         tube_mock.opt = {'tube': 'tube'}
 
         task_mock = mock.Mock()
-        task_mock.task_id = None
+        task_mock.data = {'url': 'error_url', 'url_id': 5}
+        task_mock.meta = mock.Mock(return_value={'pri': 'pri'})
         task_mock.ack = mock.Mock(side_effect=DatabaseError)
 
         tube_mock.take = mock.Mock(return_value=task_mock)
 
         get_tube_mock = mock.Mock(return_value=tube_mock)
 
-        get_redirect_mock = mock.Mock(return_value=(False, None))
+        get_redirect_mock = mock.Mock(return_value=(True, task_mock.data))
 
+        mocked_method = mock.Mock()
         with mock.patch('lib.worker.get_tube', get_tube_mock, create=True):
             with mock.patch('lib.worker.logger', logger_mock, create=True):
                 with mock.patch('os.path.exists', mock.Mock(side_effect=[True, False]), create=True):
                     with mock.patch('lib.worker.get_redirect_history_from_task', get_redirect_mock, create=True):
-                        worker(config_mock, None)
-                        self.assertEqual(logger_mock.exception.call_count, 1)
+                        with mock.patch('lib.worker.my_mocked_method_for_test', mocked_method, create=True):
+                            worker(config_mock, None)
+                            self.assertEqual(mocked_method.call_count, 2)
+                            mocked_method.assert_any_call('DatabaseError')
+                            mocked_method.assert_any_call('return')

@@ -6,6 +6,7 @@ from tarantool.error import DatabaseError
 from . import to_unicode, get_redirect_history
 
 from utils import get_tube
+from tests import my_mocked_method_for_test
 
 logger = getLogger('redirect_checker')
 
@@ -72,28 +73,31 @@ def worker(config, parent_pid):
         task = input_tube.take(config.QUEUE_TAKE_TIMEOUT)
         if task:
             logger.info(u'Starting task id={}.'.format(task.task_id))
-            result = get_redirect_history_from_task(
+            is_input, data = get_redirect_history_from_task(
                 task,
                 config.HTTP_TIMEOUT,
                 config.MAX_REDIRECTS,
                 config.USER_AGENT
             )
-            if result:
-                is_input, data = result
-                if is_input:
-                    input_tube.put(
-                        data,
-                        delay=config.RECHECK_DELAY,
-                        pri=task.meta()['pri']
-                    )
-                else:
-                    output_tube.put(data)
-                logger.debug(u'Task id={} data:{}'.format(task.task_id, data))
+            if is_input:
+                input_tube.put(
+                    data,
+                    delay=config.RECHECK_DELAY,
+                    pri=task.meta()['pri']
+                )
+            else:
+                output_tube.put(data)
+            logger.debug(u'Task id={} data:{}'.format(task.task_id, data))
             try:
                 task.ack()
                 logger.info(u'Task id={} done'.format(task.task_id))
+                my_mocked_method_for_test('task_done')
             except DatabaseError as e:
                 logger.info('Task ack fail')
                 logger.exception(e)
+                my_mocked_method_for_test('DatabaseError')
+        else:
+            my_mocked_method_for_test('no_task')
     else:
         logger.info('Parent is dead. exiting')
+        my_mocked_method_for_test('return')
