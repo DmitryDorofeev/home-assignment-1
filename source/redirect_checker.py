@@ -6,6 +6,7 @@ import sys
 from logging.config import dictConfig
 from multiprocessing import active_children
 from time import sleep
+from lib import utils
 
 from lib.utils import (check_network_status, create_pidfile, daemonize,
                        load_config_from_pyfile, parse_cmd_args, spawn_workers)
@@ -46,16 +47,7 @@ def main_loop(config):
 def main(argv):
     args = parse_cmd_args(argv[1:])
 
-    if args.daemon:
-        daemonize()
-
-    if args.pidfile:
-        create_pidfile(args.pidfile)
-
-    config = load_config_from_pyfile(
-        os.path.realpath(os.path.expanduser(args.config))
-    )
-    dictConfig(config.LOGGING)
+    config = utils.get_config_with_args(args)
     main_loop(config)
 
     return config.EXIT_CODE

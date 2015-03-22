@@ -5,71 +5,17 @@ import redirect_checker
 __author__ = "leshiy1295"
 
 class RedirectCheckerTestCase(unittest.TestCase):
-    def test_main_without_parameters(self):
+    def test_main(self):
+        args_mock = mock.Mock()
+        parse_mock = mock.Mock(return_value=args_mock)
         config_mock = mock.Mock()
         config_mock.EXIT_CODE = 0
+        get_config_mock = mock.Mock(return_value=config_mock)
 
-        args_mock = mock.Mock()
-        args_mock.daemon = None
-        args_mock.pidfile = None
-        parse_mock = mock.Mock(return_value=args_mock)
-
-        load_config_mock = mock.Mock(return_value=config_mock)
-        daemonize_mock = mock.Mock()
-        create_pidfile_mock = mock.Mock()
         with mock.patch('redirect_checker.parse_cmd_args', parse_mock, create=True):
-            with mock.patch('redirect_checker.daemonize', daemonize_mock, create=True):
-                with mock.patch('redirect_checker.create_pidfile', create_pidfile_mock, create=True):
-                    with mock.patch('redirect_checker.load_config_from_pyfile', load_config_mock, create=True):
-                        with mock.patch('os.path', mock.Mock(), create=True):
-                            with mock.patch('redirect_checker.dictConfig', mock.Mock(), create=True):
-                                with mock.patch('redirect_checker.main_loop', mock.Mock(), create=True):
-                                    self.assertEqual(redirect_checker.main([]), config_mock.EXIT_CODE)
-                                    self.assertFalse(daemonize_mock.called)
-                                    self.assertFalse(create_pidfile_mock.called)
-
-    def test_main_with_daemon_parameter(self):
-        config_mock = mock.Mock()
-        config_mock.EXIT_CODE = 0
-
-        args_mock = mock.Mock()
-        args_mock.daemon = True
-        args_mock.pidfile = None
-        parse_mock = mock.Mock(return_value=args_mock)
-
-        load_config_mock = mock.Mock(return_value=config_mock)
-        daemonize_mock = mock.Mock()
-        with mock.patch('redirect_checker.parse_cmd_args', parse_mock, create=True):
-            with mock.patch('redirect_checker.daemonize', daemonize_mock, create=True):
-                with mock.patch('redirect_checker.load_config_from_pyfile', load_config_mock, create=True):
-                    with mock.patch('os.path', mock.Mock(), create=True):
-                        with mock.patch('redirect_checker.dictConfig', mock.Mock(), create=True):
-                            with mock.patch('redirect_checker.main_loop', mock.Mock(), create=True):
-                                redirect_checker.main([])
-                                daemonize_mock.assert_called_once_with()
-
-    def test_main_with_pidfile_parameter(self):
-        config_mock = mock.Mock()
-        config_mock.EXIT_CODE = 0
-
-        args_mock = mock.Mock()
-        args_mock.daemon = None
-        args_mock.pidfile = True
-        parse_mock = mock.Mock(return_value=args_mock)
-
-        load_config_mock = mock.Mock(return_value=config_mock)
-        create_pidfile_mock = mock.Mock()
-        daemonize_mock = mock.Mock()
-        with mock.patch('redirect_checker.parse_cmd_args', parse_mock, create=True):
-            with mock.patch('redirect_checker.daemonize', daemonize_mock, create=True):
-                with mock.patch('redirect_checker.create_pidfile', create_pidfile_mock, create=True):
-                    with mock.patch('redirect_checker.load_config_from_pyfile', load_config_mock, create=True):
-                        with mock.patch('os.path', mock.Mock(), create=True):
-                            with mock.patch('redirect_checker.dictConfig', mock.Mock(), create=True):
-                                with mock.patch('redirect_checker.main_loop', mock.Mock(), create=True):
-                                    self.assertEqual(redirect_checker.main([]), config_mock.EXIT_CODE)
-                                    self.assertFalse(daemonize_mock.called)
-                                    create_pidfile_mock.assert_called_once_with(args_mock.pidfile)
+            with mock.patch('redirect_checker.utils.get_config_with_args', get_config_mock, create=True):
+                with mock.patch('redirect_checker.main_loop', mock.Mock(), create=True):
+                    self.assertEqual(redirect_checker.main([]), config_mock.EXIT_CODE)
 
     def test_main_loop_with_good_network_status(self):
         config_mock = mock.Mock()

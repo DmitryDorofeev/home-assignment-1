@@ -1,5 +1,6 @@
 # coding: utf-8
 import argparse
+from logging.config import dictConfig
 from multiprocessing import Process
 import os
 import socket
@@ -7,6 +8,20 @@ import urllib2
 
 from tarantool_queue import tarantool_queue
 
+def get_config_with_args(args):
+    if args.daemon:
+        daemonize()
+
+    if args.pidfile:
+        create_pidfile(args.pidfile)
+
+    config = load_config_from_pyfile(
+        os.path.realpath(os.path.expanduser(args.config))
+    )
+
+    dictConfig(config.LOGGING)
+
+    return config
 
 def daemonize():
     """

@@ -5,6 +5,63 @@ from lib import utils
 
 
 class UtilsTestCase(unittest.TestCase):
+    def test_get_config_without_parameters(self):
+        config_mock = mock.Mock()
+        config_mock.EXIT_CODE = 0
+
+        args_mock = mock.Mock()
+        args_mock.daemon = None
+        args_mock.pidfile = None
+
+        load_config_mock = mock.Mock(return_value=config_mock)
+        daemonize_mock = mock.Mock()
+        create_pidfile_mock = mock.Mock()
+        with mock.patch('lib.utils.daemonize', daemonize_mock, create=True):
+            with mock.patch('lib.utils.create_pidfile', create_pidfile_mock, create=True):
+                with mock.patch('lib.utils.load_config_from_pyfile', load_config_mock, create=True):
+                    with mock.patch('os.path', mock.Mock(), create=True):
+                        with mock.patch('lib.utils.dictConfig', mock.Mock(), create=True):
+                            self.assertEqual(utils.get_config_with_args(args_mock), config_mock)
+                            self.assertFalse(daemonize_mock.called)
+                            self.assertFalse(create_pidfile_mock.called)
+
+    def test_get_config_with_daemon_parameter(self):
+        config_mock = mock.Mock()
+        config_mock.EXIT_CODE = 0
+
+        args_mock = mock.Mock()
+        args_mock.daemon = True
+        args_mock.pidfile = None
+
+        load_config_mock = mock.Mock(return_value=config_mock)
+        daemonize_mock = mock.Mock()
+        with mock.patch('lib.utils.daemonize', daemonize_mock, create=True):
+            with mock.patch('lib.utils.load_config_from_pyfile', load_config_mock, create=True):
+                with mock.patch('os.path', mock.Mock(), create=True):
+                    with mock.patch('lib.utils.dictConfig', mock.Mock(), create=True):
+                        utils.get_config_with_args(args_mock)
+                        daemonize_mock.assert_called_once_with()
+
+    def test_get_config_with_pidfile_parameter(self):
+        config_mock = mock.Mock()
+        config_mock.EXIT_CODE = 0
+
+        args_mock = mock.Mock()
+        args_mock.daemon = None
+        args_mock.pidfile = True
+
+        load_config_mock = mock.Mock(return_value=config_mock)
+        create_pidfile_mock = mock.Mock()
+        daemonize_mock = mock.Mock()
+        with mock.patch('lib.utils.daemonize', daemonize_mock, create=True):
+            with mock.patch('lib.utils.create_pidfile', create_pidfile_mock, create=True):
+                with mock.patch('lib.utils.load_config_from_pyfile', load_config_mock, create=True):
+                    with mock.patch('os.path', mock.Mock(), create=True):
+                        with mock.patch('lib.utils.dictConfig', mock.Mock(), create=True):
+                            self.assertEqual(utils.get_config_with_args(args_mock), config_mock)
+                            self.assertFalse(daemonize_mock.called)
+                            create_pidfile_mock.assert_called_once_with(args_mock.pidfile)
+
     def test_parse_cmd_args_config(self):
         args = ['-c', 'test']
         parsed_arguments = utils.parse_cmd_args(args)

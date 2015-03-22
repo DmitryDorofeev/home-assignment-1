@@ -209,9 +209,6 @@ class WorkerTestCase(unittest.TestCase):
     def test_worker_with_exception(self):
         config_mock = mock.Mock()
 
-        logger_mock = mock.Mock()
-        logger_mock.exception = mock.Mock()
-
         tube_mock = mock.Mock()
         tube_mock.opt = {'tube': 'tube'}
 
@@ -228,7 +225,7 @@ class WorkerTestCase(unittest.TestCase):
 
         mocked_method = mock.Mock()
         with mock.patch('lib.worker.get_tube', get_tube_mock, create=True):
-            with mock.patch('lib.worker.logger', logger_mock, create=True):
+            with mock.patch('lib.worker.logger', mock.Mock(), create=True):
                 with mock.patch('os.path.exists', mock.Mock(side_effect=[True, False]), create=True):
                     with mock.patch('lib.worker.get_redirect_history_from_task', get_redirect_mock, create=True):
                         with mock.patch('lib.worker.my_mocked_method_for_test', mocked_method, create=True):

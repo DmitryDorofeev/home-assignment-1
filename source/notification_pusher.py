@@ -3,10 +3,8 @@
 
 import json
 import logging
-import os
 import signal
 import sys
-from logging.config import dictConfig
 from threading import current_thread
 from lib import utils
 
@@ -19,21 +17,21 @@ from gevent.pool import Pool
 import requests
 import tarantool
 import tarantool_queue
+from tests import my_mocked_method_for_test
 
 SIGNAL_EXIT_CODE_OFFSET = 128
 """Коды выхода рассчитываются как 128 + номер сигнала"""
 
-def run_application():
-    return True
+def mocked_run_application():
+    return run_application
+
+run_application = True
 """Флаг, определяющий, должно ли приложение продолжать работу."""
 
 exit_code = 0
 """Код возврата приложения"""
 
 logger = logging.getLogger('pusher')
-
-def my_mocked_method_for_test(*args, **kwargs):
-    pass
 
 def notification_worker(task, task_queue, *args, **kwargs):
     """
@@ -60,6 +58,8 @@ def notification_worker(task, task_queue, *args, **kwargs):
             url, data=json.dumps(data), *args, **kwargs
         )
 
+        my_mocked_method_for_test(response.status_code)
+
         logger.info('Callback url [{url}] response status code={status_code}.'.format(
             url=url, status_code=response.status_code
         ))
@@ -72,28 +72,25 @@ def notification_worker(task, task_queue, *args, **kwargs):
 
 def done_with_processed_tasks(task_queue):
     """
-    Удаляет завешенные задачи.
+    Удаляет завершенные задачи.
 
     :param task_queue: очередь, хранящая кортежи (объект задачи, имя действия)
     """
     logger.debug('Send info about finished tasks to queue.')
 
     for _ in xrange(task_queue.qsize()):
+        task, action_name = task_queue.get_nowait()
+
+        logger.debug('{name} task#{task_id}.'.format(
+            name=action_name.capitalize(),
+            task_id=task.task_id
+        ))
+
         try:
-            task, action_name = task_queue.get_nowait()
-
-            logger.debug('{name} task#{task_id}.'.format(
-                name=action_name.capitalize(),
-                task_id=task.task_id
-            ))
-
-            try:
-                getattr(task, action_name)()
-            except tarantool.DatabaseError as exc:
-                logger.exception(exc)
-        except gevent_queue.Empty:
-            my_mocked_method_for_test()
-            break
+            getattr(task, action_name)()
+        except tarantool.DatabaseError as exc:
+            logger.exception(exc)
+            my_mocked_method_for_test('tarantool.DatabaseError')
 
 
 def stop_handler(signum):
@@ -113,7 +110,7 @@ def stop_handler(signum):
     run_application = False
     exit_code = SIGNAL_EXIT_CODE_OFFSET + signum
 
-    my_mocked_method_for_test(exit_code)
+    my_mocked_method_for_test(exit_code, run_application)
 
 def main_loop(config):
     """
@@ -154,7 +151,7 @@ def main_loop(config):
         count=config.WORKER_POOL_SIZE, sleep=config.SLEEP
     ))
 
-    while run_application():
+    while mocked_run_application():
         free_workers_count = worker_pool.free_count()
 
         logger.debug('Pool has {count} free workers.'.format(count=free_workers_count))
@@ -178,6 +175,8 @@ def main_loop(config):
                 )
                 worker_pool.add(worker)
                 worker.start()
+            else:
+                my_mocked_method_for_test('no_task')
 
         done_with_processed_tasks(processed_task_queue)
 
@@ -207,27 +206,18 @@ def main(argv):
     """
     args = utils.parse_cmd_args(argv[1:], 'Push notifications daemon.')
 
-    if args.daemon:
-        utils.daemonize()
-
-    if args.pidfile:
-        utils.create_pidfile(args.pidfile)
-
-    config = utils.load_config_from_pyfile(
-        os.path.realpath(os.path.expanduser(args.config))
-    )
+    config = utils.get_config_with_args(args)
 
     patch_all()
-
-    dictConfig(config.LOGGING)
 
     current_thread().name = 'pusher.main'
 
     install_signal_handlers()
 
-    while run_application():
+    while mocked_run_application():
         try:
             main_loop(config)
+            my_mocked_method_for_test('main_loop')
         except Exception as exc:
             logger.error(
                 'Error in main loop. Go to sleep on {} second(s).'.format(config.SLEEP_ON_FAIL)
