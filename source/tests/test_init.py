@@ -120,7 +120,7 @@ class InitTestCase(unittest.TestCase):
                     self.assertEqual(lib.get_url(None, None, None), (None, None, None))
 
     def test_get_url_market(self):
-        def check(content, url):
+        def check(_, url):
             return url
 
         with mock.patch('lib.make_pycurl_request',
