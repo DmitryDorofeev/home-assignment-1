@@ -23,8 +23,9 @@ class UtilsTestCase(unittest.TestCase):
 
     def test_parse_cmd_args_err(self):
         args = []
-        with self.assertRaises(BaseException):
+        with mock.patch('argparse.ArgumentParser.error', mock.Mock()) as parse_error:
             parsed_arguments = utils.parse_cmd_args(args)
+            self.assertTrue(parse_error.called)
 
     def test_daemonize(self):
         pid = 7
