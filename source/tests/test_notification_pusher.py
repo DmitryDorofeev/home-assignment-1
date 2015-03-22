@@ -3,6 +3,7 @@ import unittest
 import mock
 import requests
 import tarantool
+import json
 from notification_pusher import notification_worker, done_with_processed_tasks, stop_handler, install_signal_handlers, \
     SIGNAL_EXIT_CODE_OFFSET, main_loop, main, run, main_loop_run, run_application, mocked_run_application
 
@@ -22,12 +23,14 @@ class NotificationPusherTestCase(unittest.TestCase):
         response_mock = mock.Mock()
         response_mock.status_code = 200
         mocked_method = mock.Mock()
+        post_mock = mock.Mock(return_value=response_mock)
         with mock.patch('notification_pusher.current_thread', mock.Mock(return_value=current_thread_mock), create=True):
             with mock.patch('notification_pusher.logger', mock.Mock(), create=True):
-                with mock.patch('notification_pusher.requests.post', mock.Mock(return_value=response_mock), create=True):
+                with mock.patch('notification_pusher.requests.post', post_mock, create=True):
                     with mock.patch('notification_pusher.my_mocked_method_for_test', mocked_method, create=True):
                         notification_worker(task_mock, task_queue_mock)
                         self.assertEqual(current_thread_mock.name, "pusher.worker#1")
+                        post_mock.assert_called_once_with('url', data=json.dumps({'id': task_mock.task_id}))
                         mocked_method.assert_called_once_with(200)
                         task_queue_mock.put.assert_called_once_with((task_mock, 'ack'))
 
