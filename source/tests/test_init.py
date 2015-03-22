@@ -152,6 +152,10 @@ class InitTestCase(unittest.TestCase):
         with mock.patch('lib.re.match', mock.Mock(return_value=True)):
             self.assertEqual(lib.get_redirect_history('url', None), ([], ['url'], []))
 
+    def test_get_redirect_history_None_url(self):
+        with mock.patch('lib.re.match', mock.Mock(return_value=True)):
+            self.assertEqual(lib.get_redirect_history(None, None), ([], [None], []))
+
     def test_get_redirect_history_not_redirect_url(self):
         with mock.patch('lib.re.match', mock.Mock(return_value=None)):
             with mock.patch('lib.get_url', mock.Mock(return_value=(None, None, None))):
