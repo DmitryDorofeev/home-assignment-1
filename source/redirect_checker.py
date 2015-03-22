@@ -11,11 +11,32 @@ from lib import utils
 from lib.utils import (check_network_status, create_pidfile, daemonize,
                        load_config_from_pyfile, parse_cmd_args, spawn_workers)
 from lib.worker import worker
+from tests import my_mocked_method_for_test
 
 logger = logging.getLogger('redirect_checker')
 
 def condition_is_true():
     return True
+
+def create_workers(config, parent_pid):
+    required_workers_count = config.WORKER_POOL_SIZE - len(
+        active_children())
+    if required_workers_count > 0:
+        logger.info(
+            'Spawning {} workers'.format(required_workers_count))
+        spawn_workers(
+            num=required_workers_count,
+            target=worker,
+            args=(config,),
+            parent_pid=parent_pid
+        )
+    else:
+        my_mocked_method_for_test('full_pool')
+
+def remove_workers():
+    logger.critical('Network is down. stopping workers')
+    for c in active_children():
+        c.terminate()
 
 def main_loop(config):
     logger.info(
@@ -25,21 +46,9 @@ def main_loop(config):
     parent_pid = os.getpid()
     while condition_is_true():
         if check_network_status(config.CHECK_URL, config.HTTP_TIMEOUT):
-            required_workers_count = config.WORKER_POOL_SIZE - len(
-                active_children())
-            if required_workers_count > 0:
-                logger.info(
-                    'Spawning {} workers'.format(required_workers_count))
-                spawn_workers(
-                    num=required_workers_count,
-                    target=worker,
-                    args=(config,),
-                    parent_pid=parent_pid
-                )
+            create_workers(config, parent_pid)
         else:
-            logger.critical('Network is down. stopping workers')
-            for c in active_children():
-                c.terminate()
+            remove_workers()
 
         sleep(config.SLEEP)
 
