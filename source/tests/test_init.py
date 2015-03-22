@@ -50,7 +50,6 @@ class InitTestCase(unittest.TestCase):
             self.assertEqual(lib.make_pycurl_request('url', None), ('', 'url'))
 
     def test_make_pycurl_req_user_agent(self):
-
         def ret(param):
             return param
 
@@ -71,7 +70,6 @@ class InitTestCase(unittest.TestCase):
             self.assertEqual(lib.make_pycurl_request('url', None), ('', None))
 
     def test_make_pycurl_req_timeout(self):
-
         curl_mock = mock.Mock()
         curl_mock.getinfo.return_value = 'url'
         with mock.patch('lib.pycurl.Curl', mock.Mock(return_value=curl_mock)):
@@ -148,36 +146,33 @@ class InitTestCase(unittest.TestCase):
         html = '<>'
         self.assertEqual(lib.check_for_meta(html, 'http://localhost/'), None)
 
-    def test_get_redirect_history_match_true(self):
-        with mock.patch('lib.re.match', mock.Mock(return_value=True)):
-            self.assertEqual(lib.get_redirect_history('url', None), ([], ['url'], []))
+    def test_get_redirect_history_MM_url(self):
+        self.assertEqual(lib.get_redirect_history('https://my.mail.ru/apps/', None), ([], [u'https://my.mail.ru/apps/'], []))
 
-    def test_get_redirect_history_None_url(self):
-        with mock.patch('lib.re.match', mock.Mock(return_value=True)):
-            self.assertEqual(lib.get_redirect_history(None, None), ([], [None], []))
+    def test_get_redirect_history_OK_url(self):
+        self.assertEqual(lib.get_redirect_history(u'http://odnoklassniki.ru/', None),
+                         ([], [u'http://odnoklassniki.ru/'], []))
 
     def test_get_redirect_history_not_redirect_url(self):
-        with mock.patch('lib.re.match', mock.Mock(return_value=None)):
-            with mock.patch('lib.get_url', mock.Mock(return_value=(None, None, None))):
-                self.assertEqual(lib.get_redirect_history('url', None), ([], ['url'], []))
+        with mock.patch('lib.get_url', mock.Mock(return_value=(None, None, None))):
+            self.assertEqual(lib.get_redirect_history('url', None), ([], ['url'], []))
 
     def test_get_redirect_history_redirect_type_error(self):
-        with mock.patch('lib.re.match', mock.Mock(return_value=None)):
+        with mock.patch('lib.get_counters', mock.Mock(return_value=[])):
             with mock.patch('lib.get_url', mock.Mock(return_value=('url', 'ERROR', True))):
                 self.assertEqual(lib.get_redirect_history('url', None), (['ERROR'], ['url', 'url'], []))
 
     def test_get_redirect_history(self):
-        with mock.patch('lib.re.match', mock.Mock(return_value=None)):
+        with mock.patch('lib.get_counters', mock.Mock(return_value=[])):
             with mock.patch('lib.get_url', mock.Mock(return_value=('url', None, None))):
                 self.assertEqual(lib.get_redirect_history('url', None), ([None], ['url', 'url'], []))
 
     def test_get_redirect_history_with_content(self):
-        with mock.patch('lib.re.match', mock.Mock(return_value=False)):
-            with mock.patch('lib.get_counters', mock.Mock(return_value=['ga', 'ym'])):
-                with mock.patch('lib.get_url', mock.Mock(return_value=('url', None, 'somecontent'))):
-                    self.assertEqual(lib.get_redirect_history('url', None), ([None], ['url', 'url'], ['ga', 'ym']))
+        with mock.patch('lib.get_counters', mock.Mock(return_value=['ga', 'ym'])):
+            with mock.patch('lib.get_url', mock.Mock(return_value=('url', None, 'somecontent'))):
+                self.assertEqual(lib.get_redirect_history('url', None), ([None], ['url', 'url'], ['ga', 'ym']))
 
-    def test_get_redirect_history_with_some_iterations(self):
-        with mock.patch('lib.re.match', mock.Mock(return_value=False)):
-            with mock.patch('lib.get_url', mock.Mock(return_value=('new_url', 'type', None))):
-                self.assertEqual(lib.get_redirect_history('url', None), (['type', 'type'], ['url', 'new_url', 'new_url'], []))
+    def test_get_redirect_history_with_some_iterations(self):  #
+        with mock.patch('lib.get_url', mock.Mock(return_value=('new_url', 'type', None))):
+            self.assertEqual(lib.get_redirect_history('url', None),
+                             (['type', 'type'], ['url', 'new_url', 'new_url'], []))
