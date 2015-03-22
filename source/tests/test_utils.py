@@ -66,22 +66,22 @@ class UtilsTestCase(unittest.TestCase):
         args = ['-c', 'test']
         parsed_arguments = utils.parse_cmd_args(args)
 
-        self.assertEqual(parsed_arguments.config, 'test')
-        self.assertFalse(parsed_arguments.daemon)
-        self.assertIsNone(parsed_arguments.pidfile)
+        self.assertEqual(getattr(parsed_arguments, 'config'), 'test')
+        self.assertFalse(getattr(parsed_arguments, 'daemon'))
+        self.assertIsNone(getattr(parsed_arguments, 'pidfile', None))
 
     def test_parse_cmd_args_daemon(self):
         args = ['-c', 'test', '-d']
         parsed_arguments = utils.parse_cmd_args(args)
 
-        self.assertEqual(parsed_arguments.config, 'test')
-        self.assertTrue(parsed_arguments.daemon)
-        self.assertIsNone(parsed_arguments.pidfile)
+        self.assertEqual(getattr(parsed_arguments, 'config'), 'test')
+        self.assertTrue(getattr(parsed_arguments, 'daemon'))
+        self.assertIsNone(getattr(parsed_arguments, 'pidfile', None))
 
     def test_parse_cmd_args_err(self):
         args = []
         with mock.patch('argparse.ArgumentParser.error', mock.Mock()) as parse_error:
-            parsed_arguments = utils.parse_cmd_args(args)
+            utils.parse_cmd_args(args)
             self.assertTrue(parse_error.called)
 
     def test_daemonize(self):
@@ -108,7 +108,7 @@ class UtilsTestCase(unittest.TestCase):
 
     def test_daemonize_pid0_exc(self):
         with mock.patch('os.fork', mock.Mock(side_effect=[0, OSError(1, 'Bye')]), create=True):
-            with mock.patch('os._exit', mock.Mock()) as mock_exit:
+            with mock.patch('os._exit', mock.Mock()):
                 with mock.patch('os.setsid', mock.Mock()):
                     with self.assertRaises(Exception):
                         utils.daemonize()
@@ -131,7 +131,7 @@ class UtilsTestCase(unittest.TestCase):
         m_open().write.assert_called_once_with(str(pid))
 
     def test_parse_config(self):
-        def file_mock(filepath, variables):
+        def file_mock(_, variables):
             variables.update({
                 'testvar': 'str',
                 'TEST': True
@@ -139,10 +139,10 @@ class UtilsTestCase(unittest.TestCase):
 
         cfg = utils.Config()
         with mock.patch('__builtin__.execfile', mock.Mock(side_effect=file_mock)):
-            self.assertEqual(type(utils.load_config_from_pyfile('filepath')), type(cfg))
-            with self.assertRaises(AttributeError):
-                utils.load_config_from_pyfile('filepath').testvar
-            self.assertEqual(utils.load_config_from_pyfile('filepath').TEST, True)
+            config = utils.load_config_from_pyfile('filepath')
+            self.assertEqual(type(config), type(cfg))
+            self.assertIsNone(getattr(config, 'testvar', None))
+            self.assertTrue(getattr(config,'TEST'))
 
     def test_get_tube(self):
         name_str = 'name'
